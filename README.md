@@ -5,4 +5,4 @@
 I am developing easy and high performance c# network library.
 
 # TcpServer
-This is a sample that using ServerBase project
+This is a sample using ServerBase project
