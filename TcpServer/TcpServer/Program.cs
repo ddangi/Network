@@ -49,12 +49,6 @@ namespace TcpServer
             }
         }
 
-        private static void SetConsoleColor(ConsoleColor color)
-        {
-            if (setConsoleColor)
-                Console.ForegroundColor = color;
-        }
-
         private static void Install()
         {
             try
@@ -82,28 +76,15 @@ namespace TcpServer
         private static void RunAsService()
         {
             ServiceBase[] servicesToRun;
-
             servicesToRun = new ServiceBase[] { new TcpServer() };
-
             ServiceBase.Run(servicesToRun);
-        }
-
-        private static bool setConsoleColor;
-
-        private static void SetConsoleColor(/*LogLevel*/)
-        {
-            SetConsoleColor(ConsoleColor.Red);
-            SetConsoleColor(ConsoleColor.Green);
         }
 
         static void RunAsConsole()
         {
-            Console.WriteLine("-------------------------------------------------------------------");
-            Console.WriteLine("Try to start TcpServer on console mode!");
-            Console.WriteLine("-------------------------------------------------------------------");
-
-
-            Console.WriteLine("-------------------------------------------------------------------");
+            TcpServer server = new TcpServer();
+            server.OnStart(null);
+            server.OnStop();            
         }
     }
 }
