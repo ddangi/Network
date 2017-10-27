@@ -19,10 +19,17 @@ namespace TcpServer
 
         protected override void OnStart(string[] args)
         {
+            Console.WriteLine("-------------------------------------------------------------------");
+            Console.WriteLine("Try to start TcpServer!");
+            Console.WriteLine("-------------------------------------------------------------------");
+
+
+            Console.WriteLine("-------------------------------------------------------------------");
         }
 
         protected override void OnStop()
         {
+            Console.WriteLine("TcpServer stopped!");
         }
     }
 }
