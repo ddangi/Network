@@ -9,6 +9,7 @@ using System.ServiceProcess;
 
 namespace TcpServer
 {
+
     [RunInstaller(true)]
     public partial class TcpServiceInstaller : System.Configuration.Install.Installer
     {
@@ -20,8 +21,8 @@ namespace TcpServer
             InitializeComponent();
 
             serviceProcessInstaller = new System.ServiceProcess.ServiceProcessInstaller();
-            serviceInstaller = new ServiceInstaller();            
-            
+            serviceInstaller = new ServiceInstaller();
+
             serviceProcessInstaller.Account = System.ServiceProcess.ServiceAccount.LocalSystem;
             serviceProcessInstaller.Password = null;
             serviceProcessInstaller.Username = null;
@@ -40,7 +41,7 @@ namespace TcpServer
             serviceProcessInstaller,
             serviceInstaller});
         }
-        
+
         private void serviceInstaller_AfterInstall(object sender, InstallEventArgs e)
         {
             try
@@ -53,7 +54,7 @@ namespace TcpServer
             }
             catch (Exception ee)
             {
-                EventLog.WriteEntry("Application", ee.ToString(), EventLogEntryType.Error);
+                //EventLog.WriteEntry("Application", ee.ToString(), EventLogEntryType.Error);
             }
         }
     }

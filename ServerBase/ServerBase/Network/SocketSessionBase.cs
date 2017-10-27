@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace ServerBase
 {
-    public class ServerSocketBase
+    public class SocketSessionBase : IOSocket
     {
+        private ListenSocketBase _listenSocket;
     }
 }

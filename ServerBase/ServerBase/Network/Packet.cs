@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 
 namespace ServerBase
 {
-    public class Network
+    public class Packet : PacketBase
     {
-
     }
 }

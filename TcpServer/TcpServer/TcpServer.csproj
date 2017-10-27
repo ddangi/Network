@@ -56,7 +56,6 @@
     <Compile Include="TcpServer.Designer.cs">
       <DependentUpon>TcpServer.cs</DependentUpon>
     </Compile>
-    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TcpServiceInstaller.cs">
       <SubType>Component</SubType>
