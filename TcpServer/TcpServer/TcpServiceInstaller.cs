@@ -13,22 +13,48 @@ namespace TcpServer
     public partial class TcpServiceInstaller : System.Configuration.Install.Installer
     {
         private ServiceInstaller serviceInstaller;
+        private ServiceProcessInstaller serviceProcessInstaller;
 
         public TcpServiceInstaller()
         {
             InitializeComponent();
 
-            serviceInstaller = new ServiceInstaller();
+            serviceProcessInstaller = new System.ServiceProcess.ServiceProcessInstaller();
+            serviceInstaller = new ServiceInstaller();            
+            
+            serviceProcessInstaller.Account = System.ServiceProcess.ServiceAccount.LocalSystem;
+            serviceProcessInstaller.Password = null;
+            serviceProcessInstaller.Username = null;
 
             serviceInstaller.StartType = ServiceStartMode.Automatic;
-            serviceInstaller.ServiceName = " TcpServer";
+            serviceInstaller.DisplayName = " TcpServer";
+            serviceInstaller.ServiceName = "TcpServer";
             serviceInstaller.Description = "Tcp Server Service";
+            serviceInstaller.AfterInstall += new System.Configuration.Install.InstallEventHandler(serviceInstaller_AfterInstall);
 
             var servicesDependedOn = new List<string> { "tcpip" };
 
             serviceInstaller.ServicesDependedOn = servicesDependedOn.ToArray();
 
-            Installers.Add(serviceInstaller);
+            Installers.AddRange(new System.Configuration.Install.Installer[] {
+            serviceProcessInstaller,
+            serviceInstaller});
+        }
+        
+        private void serviceInstaller_AfterInstall(object sender, InstallEventArgs e)
+        {
+            try
+            {
+                using (ServiceController sc = new ServiceController(serviceInstaller.ServiceName, Environment.MachineName))
+                {
+                    if (sc.Status != ServiceControllerStatus.Running)
+                        sc.Start();
+                }
+            }
+            catch (Exception ee)
+            {
+                EventLog.WriteEntry("Application", ee.ToString(), EventLogEntryType.Error);
+            }
         }
     }
 }
