@@ -13,34 +13,34 @@ namespace ServerBase
         private Int32 nextTokenId = 0;
 
         // Pool of reusable SocketAsyncEventArgs objects.
-        Stack<SocketAsyncEventArgs> pool;
+        private Queue<SocketAsyncEventArgs> pool;
 
         // initializes the object pool to the specified size.
         // "capacity" = Maximum number of SocketAsyncEventArgs objects
-        internal SocketAsyncEventArgsPool(Int32 capacity)
+        public SocketAsyncEventArgsPool(Int32 capacity)
         {
-            this.pool = new Stack<SocketAsyncEventArgs>(capacity);
+            pool = new Queue<SocketAsyncEventArgs>(capacity);
         }
 
         // The number of SocketAsyncEventArgs instances in the pool.
-        internal Int32 Count
+        public int Count
         {
-            get { return this.pool.Count; }
+            get { return pool.Count; }
         }
 
         // Removes a SocketAsyncEventArgs instance from the pool.
         // returns SocketAsyncEventArgs removed from the pool.
-        internal SocketAsyncEventArgs Pop()
+        public SocketAsyncEventArgs Pop()
         {
-            lock (this.pool)
+            lock (pool)
             {
-                return this.pool.Pop();
+                return pool.Dequeue();
             }
         }
 
         // Add a SocketAsyncEventArg instance to the pool.
         // "item" = SocketAsyncEventArgs instance to add to the pool.
-        internal bool Push(SocketAsyncEventArgs item)
+        public bool Push(SocketAsyncEventArgs item)
         {
             if (item == null)
             {
@@ -48,9 +48,9 @@ namespace ServerBase
                 return false;
             }
 
-            lock (this.pool)
+            lock (pool)
             {
-                this.pool.Push(item);
+                pool.Enqueue(item);
             }
             return true;
         }

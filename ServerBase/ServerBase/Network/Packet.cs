@@ -8,5 +8,14 @@ namespace ServerBase
 {
     public class Packet : PacketBase
     {
+        public override int GetLength()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int GetPacketSize()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

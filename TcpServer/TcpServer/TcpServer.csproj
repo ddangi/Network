@@ -50,6 +50,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IOTcpServer.cs" />
     <Compile Include="TcpServer.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -63,10 +64,17 @@
     <Compile Include="TcpServiceInstaller.Designer.cs">
       <DependentUpon>TcpServiceInstaller.cs</DependentUpon>
     </Compile>
+    <Compile Include="UserSocket.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\ServerBase\ServerBase\ServerBase.csproj">
+      <Project>{2E187E86-90A1-4497-BAD2-B3808754F1E5}</Project>
+      <Name>ServerBase</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

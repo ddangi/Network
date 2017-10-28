@@ -14,6 +14,8 @@ namespace TcpServer
 {
     public partial class TcpServer : ServiceBase
     {
+        private static IOTcpServer s_tcpServer = new IOTcpServer();
+
         public TcpServer()
         {
             InitializeComponent();
@@ -111,13 +113,15 @@ namespace TcpServer
             Console.WriteLine("Try to start TcpServer!");
             Console.WriteLine("-------------------------------------------------------------------");
 
+            int port = 20000;
+            s_tcpServer.Start(port);
 
-            Console.WriteLine("-------------------------------------------------------------------");
         }
 
         protected override void OnStop()
         {
             Console.WriteLine("TcpServer stopped!");
+            s_tcpServer.Stop();
         }
     }
 }

@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace ServerBase
 {
-    public class SocketSessionBase : IOSocket
+    public class Singleton<T>
     {
-        private ListenSocketBase _listenSocket;
+        protected static readonly Lazy<T> lazy = new Lazy<T>();
 
-        
+        public static T Instance => lazy.Value;
     }
 }

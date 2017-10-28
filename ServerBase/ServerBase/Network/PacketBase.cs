@@ -8,8 +8,14 @@ namespace ServerBase
 {
     abstract public class PacketBase
     {
-        protected byte[] _buffer;
+        public byte[] _buffer;
         protected IOSocket _socket;
+
+        int _length;
+        int _sequence;
+        int _command;
+
+        int _currentIndex;
 
         public abstract int GetPacketSize();
         public abstract int GetLength();

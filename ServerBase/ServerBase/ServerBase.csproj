@@ -48,12 +48,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BufferManager.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="Network\ClientSocketBase.cs" />
     <Compile Include="Network\IOSocket.cs" />
     <Compile Include="Network\ListenSocketBase.cs" />
     <Compile Include="Network\Packet.cs" />
     <Compile Include="Network\PacketBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Singleton.cs" />
     <Compile Include="SocketAsyncEventArgsPool.cs" />
     <Compile Include="Network\SocketSessionBase.cs" />
   </ItemGroup>
