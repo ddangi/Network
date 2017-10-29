@@ -12,7 +12,7 @@ enum TcpServerCommand
 	CS_ECHO_REQUEST					= 3;
 	CS_ECHO_OK						= 4;
 
-	GS_CMD_MAX						= 1000;
+	CS_CMD_MAX						= 1000;
 }
 
 message CsPingRequest

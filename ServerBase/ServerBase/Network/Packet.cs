@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Google.Protobuf;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,22 +27,25 @@ namespace ServerBase
             return _header.length - Constants.HEADER_SIZE;
         }
 
-        public void EncodePacket()
+        public void EncodePacket(TcpServerCommand cmd, CsEchoOk response)
         {
-            //본문만 proto로 serialize 하고 헤더는 그냥 넣는다.
-            MemoryStream stream = new MemoryStream();
-            stream.Seek(0, SeekOrigin.Begin);
+            MemoryStream outStream = new MemoryStream();
+            outStream.Seek(Constants.PACKET_LENGTH_SIZE, SeekOrigin.Begin);
+            outStream.Write(BitConverter.GetBytes((short)cmd), 0, sizeof(short));
 
+            outStream.Seek(Constants.HEADER_SIZE, SeekOrigin.Begin);
 
-        }
+            CodedOutputStream output = new CodedOutputStream(outStream);
+            response.WriteTo(output);
 
-        public void DecodePacket()
-        {
-        }
+            short length = (short)outStream.Length;
 
-        public void Send<T>(short cmd, T protoPacket)
-        {
+            outStream.Seek(0, SeekOrigin.Begin);
+            outStream.Write(BitConverter.GetBytes(length), 0, sizeof(short));
 
+            outStream.Read(_buffer, 0, length);
+
+            _packetSize = length;
         }
     }
 }
