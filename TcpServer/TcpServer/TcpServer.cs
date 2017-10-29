@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reflection;
 using System.ServiceProcess;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace TcpServer
@@ -15,10 +16,12 @@ namespace TcpServer
     public partial class TcpServer : ServiceBase
     {
         private static IOTcpServer s_tcpServer = new IOTcpServer();
+        public static ManualResetEvent _isShutDown;
 
         public TcpServer()
         {
             InitializeComponent();
+            _isShutDown = new ManualResetEvent(false);
         }
 
         static void Main(string[] args)
@@ -53,6 +56,7 @@ namespace TcpServer
 
             if(true == bDebug)
             {
+
                 RunAsConsole();
             }
             else
@@ -116,12 +120,15 @@ namespace TcpServer
             int port = 20000;
             s_tcpServer.Start(port);
 
+            _isShutDown.WaitOne(-1);
         }
 
         protected override void OnStop()
         {
             Console.WriteLine("TcpServer stopped!");
             s_tcpServer.Stop();
+
+            _isShutDown.Set();
         }
     }
 }

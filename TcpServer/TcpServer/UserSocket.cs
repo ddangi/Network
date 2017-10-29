@@ -20,5 +20,10 @@ namespace TcpServer
         public UserSocket()
         {
         }
+
+        protected override void ProcessPacket(short cmd, byte[] buffer)
+        {
+
+        }
     }
 }

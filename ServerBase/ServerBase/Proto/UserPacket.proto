@@ -1,0 +1,34 @@
+syntax = "proto3";
+package USER_PACKET;
+
+
+enum TcpServerCommand
+{
+	CS_CMD_MIN = 0;
+
+	CS_PING_REQUEST					= 1;
+	CS_PING_OK						= 2;
+
+	CS_ECHO_REQUEST					= 3;
+	CS_ECHO_OK						= 4;
+
+	GS_CMD_MAX						= 1000;
+}
+
+message CsPingRequest
+{
+}
+
+message CsPingOk
+{
+}
+
+message CsEchoRequest
+{
+	string			message				= 1;
+}
+
+message CsEchoOk
+{
+	string			message				= 1;
+}
