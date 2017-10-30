@@ -10,7 +10,7 @@ using USERPACKET;
 
 namespace ServerBase
 {
-    public class IOSocket
+    public abstract class IOSocket
     {
         protected Socket _socket;
         protected SocketAsyncEventArgs _sendEventArgs;
@@ -68,6 +68,9 @@ namespace ServerBase
 
         public void StartReceive()
         {
+            //socket state check. shuld not be SocketState.CLOSED
+            
+            //need to try~ catch(closeSocket)
             bool pending = _socket.ReceiveAsync(_receiveEventArgs);
             if (!pending)
             {
@@ -80,6 +83,7 @@ namespace ServerBase
             if (_receiveEventArgs.BytesTransferred > 0 && _receiveEventArgs.SocketError == SocketError.Success)
             {
                 OnReceive(_receiveEventArgs.Buffer, _receiveEventArgs.Offset, _receiveEventArgs.BytesTransferred);
+                StartReceive();
             }
             else
             {
@@ -100,7 +104,6 @@ namespace ServerBase
             // 패킷이 여러개 뭉쳐 올 경우 원본 버퍼의 포지션은 계속 앞으로 가야 하는데 그 처리를 위한 변수이다.
             int srcPosition = offset;
 
-            short cmd = 0;
             // 남은 데이터가 있다면 계속 반복한다.
             while (_remainBytes > 0)
             {
@@ -120,8 +123,7 @@ namespace ServerBase
                     }
 
                     // 헤더 하나를 온전히 읽어왔으므로 메시지 사이즈를 구한다.
-                    _positionToRead = BitConverter.ToInt16(buffer, 0);
-                    cmd = BitConverter.ToInt16(buffer, 2);
+                    _positionToRead = BitConverter.ToInt16(buffer, 0);                    
                 }
 
                 // 메시지를 읽는다.
@@ -130,7 +132,7 @@ namespace ServerBase
                 if (completed)
                 {
                     // 패킷 하나를 완성 했다.
-                    ProcessPacket(cmd, buffer);
+                    ProcessPacket(buffer);
 
                     ClearBuffer();
                 }
@@ -187,9 +189,7 @@ namespace ServerBase
             _positionToRead = 0;
         }
 
-        protected virtual void ProcessPacket(short cmd, byte[] buffer)
-        {
-        }
+        protected abstract void ProcessPacket(byte[] buffer);        
 
         public void Send(Packet msg)
         {
