@@ -11,6 +11,17 @@ namespace ServerBase
     {
         protected ListenSocketBase _listenSocket;
 
+        public SocketSessionBase(Socket socket)
+        {
+            _socket = socket;
+        }
         
+        //set event args()
+        //recvEventArg.UserToken = this;
+        //sendEventArg.UserToken = this;
+        //reciveWait?
+        
+        //Disconnect()
+        //풀에 eventArg push
     }
 }
