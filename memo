@@ -1,0 +1,26 @@
+
+private static IDictionary<TcpServerCommand, Func<TcpServerCommand, UserSocket, object, bool>> s_PacketHandlers = new Dictionary<TcpServerCommand, Func<TcpServerCommand, UserSocket, object, bool>>();
+
+object = proto packet desirialze 된거
+
+
+
+InitializePacketHandler
+
+System.Globalization.TextInfo textInfo = new System.Globalization.CultureInfo("en-US", false).TextInfo;
+Array commands = Enum.GetValues(typeof(TcpServerCommand));
+foreach (Enum cmd in commands)
+  {
+      string packetProto = packetFunction.Replace("_", "");
+        Type packetType = Type.GetType("USERPACKET." + packetProto + ",serverBase");
+                if (null != packetType)
+                    s_PacketTypes.Add((TcpServerCommand)cmd, packetType);
+                    
+                    System.Reflection.MethodInfo method = typeof(UserSocket).GetMethod(packetFunction,
+                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic,
+                    null, new Type[] { typeof(TcpServerCommand), typeof(UserSocket), typeof(Packet) }, null);
+                    
+                    null 체크
+                    
+                    s_PacketHandlers.Add((TcpServerCommand)cmd, (Func<TcpServerCommand, UserSocket, object, bool>)Delegate.CreateDelegate(typeof(Func<TcpServerCommand, UserSocket, object, bool>), method));
+  }
