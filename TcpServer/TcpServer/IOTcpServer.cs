@@ -53,12 +53,12 @@ namespace TcpServer
             }
         }
 
-        protected override void NewClientAccepted(SocketAsyncEventArgs acceptedArgs)
+        protected override void NewClientAccepted(Socket socket)
         {
             SocketAsyncEventArgs receiveArgs = _receiveEventArgsPool.Pop();
             SocketAsyncEventArgs sendArgs = _sendEventArgsPool.Pop();
 
-            UserSocket client = acceptedArgs.UserToken as UserSocket;
+            UserSocket client = new UserSocket(socket);
             client.SetEventArgs(acceptedArgs.AcceptSocket, sendArgs, receiveArgs);
             client.ID = Interlocked.Increment(ref _socketIdSeq);
 
