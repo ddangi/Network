@@ -25,10 +25,12 @@ namespace TcpServer
             
         }
 
-        protected override void ProcessPacket(short cmd, byte[] buffer)
+        protected override void ProcessPacket(byte[] buffer)
         {
-            TcpServerCommand command = (TcpServerCommand)cmd;
+            Packet packet = new packet(buffer)
+            TcpServerCommand command = (TcpServerCommand)packet.GetCommand();            
             int length = _positionToRead - Constants.HEADER_SIZE;
+            
             CodedInputStream protoStream = new CodedInputStream(buffer, Constants.HEADER_SIZE, length);
 
             OnEchoRequest(this, protoStream);
