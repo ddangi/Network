@@ -38,6 +38,7 @@ namespace ServerBase
             // Bind the socket to the local endpoint and listen for incoming connections.
             try
             {
+                _listenSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                 _listenSocket.Bind(localEndPoint);
                 _listenSocket.Listen(Constants.BACKLOG);
 
@@ -57,18 +58,26 @@ namespace ServerBase
             SocketAsyncEventArgs acceptEventArg = new SocketAsyncEventArgs();
             acceptEventArg.Completed += new EventHandler<SocketAsyncEventArgs>(OnAcceptEventArgCompleted);
 
+            //AcceptAsync : Returns false if the I / O operation completed synchronously.
+            //The SocketAsyncEventArgs.Completed event on the e parameter will not be raised
+            // and the e object passed as a parameter may be examined immediately after the method call returns to retrieve the result of the operation
             bool isPending = _listenSocket.AcceptAsync(acceptEventArg);
-            if (true == isPending)
+            if (false == isPending)
             {
-                //Console.WriteLine("AcceptAsync is pending");
-
+                ProcessAccept(acceptEventArg);
             }
         }
 
-        protected void LoopToStartAccept()
+        protected void LoopToStartAccept(SocketAsyncEventArgs acceptEventArg)
         {
             if(_bShutdown != false)
-                StartAccept();
+            {
+                bool isPending = _listenSocket.AcceptAsync(acceptEventArg);
+                if (false == isPending)
+                {
+                    ProcessAccept(acceptEventArg);
+                }
+            }
         }
 
         protected void OnAcceptEventArgCompleted(object sender, SocketAsyncEventArgs e)
@@ -80,18 +89,25 @@ namespace ServerBase
         {
             if (acceptEventArgs.SocketError != SocketError.Success)
             {
-                LoopToStartAccept();
                 Console.WriteLine($"SocketError, message - {acceptEventArgs.SocketError.ToString()}");
+                LoopToStartAccept(acceptEventArgs);                
                 return;
             }
-
-            NewClientAccepted(acceptEventArgs);
+            
+            Socket clientSocket = acceptEventArgs.AcceptSocket;
+            if(clientSocket != null)
+                NewClientAccepted(clientSocket);
 
             acceptEventArgs.AcceptSocket = null;
-            LoopToStartAccept();
+            LoopToStartAccept(acceptEventArgs);
+            
+            //성능에 문제가 있다면 LoopToStartAccept 로직을 쪼개서
+            //accetpAsync 한 다음 
+            //NewClientAccepted 하고
+            //ProcessAccept 호출하는 형태로 수정하자
         }
 
-        protected abstract void NewClientAccepted(SocketAsyncEventArgs acceptedArgs);
+        protected abstract void NewClientAccepted(Socket socket);
 
         public virtual void Stop()
         {
