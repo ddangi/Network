@@ -9,7 +9,7 @@ namespace ServerBase
 {
     public class SocketSessionBase : IOSocket
     {
-        private ListenSocketBase _listenSocket;
+        protected ListenSocketBase _listenSocket;
 
         
     }
