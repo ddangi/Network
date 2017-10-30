@@ -11,10 +11,10 @@ namespace ServerBase
 {
     public class Packet : PacketBase
     {
-        public Packet()
+        public Packet(byte[] buffer)
         {
             _header = new Header();
-            _buffer = new byte[Constants.MAX_PACKET_SIZE];
+            _buffer = buffer;
         }
 
         public override int GetPacketSize()
@@ -25,6 +25,12 @@ namespace ServerBase
         public override int GetBodySize()
         {
             return _header.length - Constants.HEADER_SIZE;
+        }
+        
+        public void short GetCommand()
+        {
+            short cmd = BitConvert.ToInt16(_buffer, Constants.LENGTH_SIZE);
+            return cmd;
         }
 
         public void EncodePacket(TcpServerCommand cmd, CsEchoOk response)
