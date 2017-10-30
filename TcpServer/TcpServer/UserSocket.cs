@@ -20,8 +20,9 @@ namespace TcpServer
         private int _id;
         public int ID { set { _id = value; } get { return _id; } }
 
-        public UserSocket()
+        public UserSocket(Socket socket) : base(socket)
         {
+            
         }
 
         protected override void ProcessPacket(short cmd, byte[] buffer)
