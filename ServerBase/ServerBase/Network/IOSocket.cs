@@ -191,8 +191,10 @@ namespace ServerBase
 
         protected abstract void ProcessPacket(byte[] buffer);        
 
-        public void Send(Packet msg)
+        public void Send(PacketBase msg)
         {
+            //need to check packet size
+            
             Monitor.Enter(_sendQueueLock);
             {
                 //if Queue is empty, need to call StartSend() directly
@@ -222,10 +224,11 @@ namespace ServerBase
 
                 // 이번에 보낼 패킷 사이즈 만큼 버퍼 크기를 설정하고
                 int length = msg.GetPacketSize();
-                _sendEventArgs.SetBuffer(this._sendEventArgs.Offset, length);
+                _sendEventArgs.SetBuffer(0, length);
 
                 // 패킷 내용을 SocketAsyncEventArgs버퍼에 복사한다.
-                Array.Copy(msg._buffer, 0, _sendEventArgs.Buffer, _sendEventArgs.Offset, length);
+                Buffer.BlockCopy(msg._buffer, 0, _sendEventArgs.Buffer, 0, size);
+                //Array.Copy(msg._buffer, 0, _sendEventArgs.Buffer, _sendEventArgs.Offset, length);
 
                 // 비동기 전송 시작.
                 bool pending = _socket.SendAsync(_sendEventArgs);
@@ -251,11 +254,20 @@ namespace ServerBase
 
         public void ProcessSend()
         {
-            //do someting
-
-            // 전송 완료된 패킷을 큐에서 제거한다.
             Monitor.Enter(_sendQueueLock);
+            int size = _sendQueue[0].GetPacketSize();
+            int sentSize = _sendEventArgs.Offset + _sendEventArgs.BytesTransferred;
+            if (sentSize != size && size - sentSize > 0)
+            {
+                _sendEventArgs.SetBuffer(sentSize, size - sentSize);
+                //try
+                _socket.SendAsync(_sendEventArgs);
+                //catch - closeSocket
+                Monitor.Exit(_sendQueueLock);
+                return;
+            }
 
+            // 전송 완료된 패킷을 큐에서 제거한다.            
             Packet packet = _sendQueue.Dequeue();
             int queueCount = _sendQueue.Count;
 
