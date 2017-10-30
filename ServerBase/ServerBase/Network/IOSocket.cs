@@ -280,19 +280,34 @@ namespace ServerBase
             }
         }
 
+        // CloseSocket -> OnClose -> Disconnect
+        
         public void CloseSocket()
         {
-            _socket.Shutdown(SocketShutdown.Both);
-            _socket.Close();
-            _socket = null;
-
-            Monitor.Enter(_sendQueueLock);
-            _sendQueue.Clear();
-            Monitor.Exit(_sendQueueLock);
-
+            //change socket state CONNECT to CLOSED
             OnClose();
         }
 
-        public virtual void OnClose() { }
+        public virtual void OnClose() 
+        { 
+            Monitor.Enter(_sendQueueLock);
+            _sendQueue.Clear();
+            Monitor.Exit(_sendQueueLock);
+            
+            Disconnect();
+        }
+        
+        public virtual void Disconnect()
+        {
+            //_socket.Shutdown(SocketShutdown.Both); // <- server 측은 linger timout 0 : shutdown 하면 graceful close 생김
+            //client 일때는 shutdown 필요
+             _socket.Close();
+            _socket = null;
+
+            _sendEventArgs.Completed -= new EventHandler<SocketAsyncEventArgs>(IO_Completed);
+            _sendEventArgs.UserToken = null;
+            _receiveEventArgs.Completed -= new EventHandler<SocketAsyncEventArgs>(IO_Completed);
+            _receiveEventArgs.UserToken = null;            
+        }
     }
 }
