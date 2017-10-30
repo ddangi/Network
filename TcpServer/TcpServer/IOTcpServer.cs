@@ -33,8 +33,9 @@ namespace TcpServer
                 UserSocket client = new UserSocket();
                 // receive pool
                 {
+                    //이 로직은 ServerSocketBase로 옮
                     SocketAsyncEventArgs arg = new SocketAsyncEventArgs();
-                    arg.Completed += new EventHandler<SocketAsyncEventArgs>(OnReceiveCompleted);
+                    arg.Completed += new EventHandler<SocketAsyncEventArgs>(IO_Completed);
                     BufferManager.Instance.SetBuffer(arg);
                     arg.UserToken = client;
 
@@ -44,7 +45,7 @@ namespace TcpServer
                 // send pool
                 {
                     SocketAsyncEventArgs arg = new SocketAsyncEventArgs();
-                    arg.Completed += new EventHandler<SocketAsyncEventArgs>(OnSendCompleted);
+                    arg.Completed += new EventHandler<SocketAsyncEventArgs>(IO_Completed);
                     BufferManager.Instance.SetBuffer(arg);
                     arg.UserToken = client;
 
