@@ -10,23 +10,33 @@ using USERPACKET;
 
 namespace ServerBase
 {
+    public enum SocketState
+    {
+        CONNECTED = 0,
+        CLOSED
+    }
+
     public abstract class IOSocket
     {
         protected Socket _socket;
+        protected SocketState _socketState = SocketState.CLOSED;
+        public SocketState State { get { return _socketState; } set { _socketState = value; } }
+
         protected SocketAsyncEventArgs _sendEventArgs;
         protected SocketAsyncEventArgs _receiveEventArgs;
 
         protected object _sendQueueLock = new object();
-        protected Queue<Packet> _sendQueue = new Queue<Packet>();
+        protected Queue<PacketBase> _sendQueue = new Queue<PacketBase>();
 
-        protected int _remainBytes;
-        protected int _currentPosition;
-        protected int _positionToRead;
-        protected byte[] _buffer;
+        protected byte[] _recvBuffer;
+        protected byte[] _sendBuffer;
 
-        public IOSocket()
+        public IOSocket(Socket socket)
         {
-            _buffer = new byte[Constants.MAX_PACKET_SIZE];
+            _socket = socket;
+
+            _recvBuffer = new byte[Constants.MAX_PACKET_SIZE];
+            _sendBuffer = new byte[Constants.MAX_PACKET_SIZE];
         }
 
         protected void IO_Completed(object sender, SocketAsyncEventArgs e)
@@ -59,22 +69,27 @@ namespace ServerBase
             }
         }
 
-        public void SetEventArgs(Socket socket, SocketAsyncEventArgs sendArgs, SocketAsyncEventArgs receiveArgs)
-        {
-            _socket = socket;
-            _sendEventArgs = sendArgs;
-            _receiveEventArgs = receiveArgs;
-        }
-
         public void StartReceive()
         {
             //socket state check. shuld not be SocketState.CLOSED
-            
-            //need to try~ catch(closeSocket)
-            bool pending = _socket.ReceiveAsync(_receiveEventArgs);
-            if (!pending)
+            if (State != SocketState.CONNECTED)
             {
-                ProcessReceive();
+                //to do - log
+                return;
+            }
+
+            try
+            {
+                bool pending = _socket.ReceiveAsync(_receiveEventArgs);
+                if (!pending)
+                {
+                    ProcessReceive();
+                }
+            }
+            catch
+            {
+                //to do - log
+                CloseSocket();
             }
         }
 
@@ -82,12 +97,12 @@ namespace ServerBase
         {
             if (_receiveEventArgs.BytesTransferred > 0 && _receiveEventArgs.SocketError == SocketError.Success)
             {
-                OnReceive(_receiveEventArgs.Buffer, _receiveEventArgs.Offset, _receiveEventArgs.BytesTransferred);
+                OnReceive(_receiveEventArgs);
                 StartReceive();
             }
             else
             {
-                Console.WriteLine(string.Format($"error {_receiveEventArgs.SocketError},  transferred {_receiveEventArgs.BytesTransferred}"));
+                Console.WriteLine(string.Format($"error - {_receiveEventArgs.SocketError},  transferred : {_receiveEventArgs.BytesTransferred}"));
                 CloseSocket();
                 return;
             }
@@ -95,106 +110,66 @@ namespace ServerBase
             StartReceive();
         }
 
-        protected void OnReceive(byte[] buffer, int offset, int bytesTransferred)
+        protected void OnReceive(SocketAsyncEventArgs arg)
         {
             //parse packet
-            _remainBytes = bytesTransferred;
+            int totalRecvSize = arg.Offset + arg.BytesTransferred;
+            int parsedSize = 0;
+            ParsePacket(arg.Buffer, totalRecvSize, out parsedSize);
 
-            // 원본 버퍼의 포지션값.
-            // 패킷이 여러개 뭉쳐 올 경우 원본 버퍼의 포지션은 계속 앞으로 가야 하는데 그 처리를 위한 변수이다.
-            int srcPosition = offset;
+            //if(false == )
+            //{
+            //    Console.WriteLine(string.Format($"ParsePacket failed -  receivedSize : {receivedOffset}"));
+            //}
 
-            // 남은 데이터가 있다면 계속 반복한다.
-            while (_remainBytes > 0)
+            //edit buffer offset
+            int remainDataSize = totalRecvSize - parsedSize;
+            if(0 < remainDataSize && 0 < parsedSize)
             {
-                bool completed = false;
+                Buffer.BlockCopy(_recvBuffer, parsedSize, _recvBuffer, 0, remainDataSize);
+                arg.SetBuffer(totalRecvSize, Constants.MAX_PACKET_SIZE - totalRecvSize);
+            }
+            else if(parsedSize == 0)
+            {
+                arg.SetBuffer(totalRecvSize, Constants.MAX_PACKET_SIZE - totalRecvSize);
+            }
+            else if(0 < arg.Offset )
+            {
+                arg.SetBuffer(0, Constants.MAX_PACKET_SIZE);
+            }
+        }
 
+        protected void ParsePacket(byte[] buffer, int totalRecvSize, out int parsedSize)
+        {
+            parsedSize = 0;
+
+            while (true)
+            {
+                int remainLength = totalRecvSize - parsedSize;
                 // 헤더만큼 못읽은 경우 헤더를 먼저 읽는다.
-                if (_currentPosition < Constants.HEADER_SIZE)
-                {
-                    // 목표 지점 설정(헤더 위치까지 도달하도록 설정).
-                    _positionToRead = Constants.HEADER_SIZE;
+                if (remainLength < Constants.PACKET_LENGTH_SIZE)
+                    return;
 
-                    completed = ReadUntil(buffer, ref srcPosition, offset, bytesTransferred);
-                    if (!completed)
-                    {
-                        // 아직 다 못읽었으므로 다음 receive를 기다린다.
-                        return;
-                    }
+                // first 2 bytes is "packetLength"
+                int packetLength = BitConverter.ToInt16(buffer, parsedSize);
+                if (remainLength < packetLength)
+                    return;
 
-                    // 헤더 하나를 온전히 읽어왔으므로 메시지 사이즈를 구한다.
-                    _positionToRead = BitConverter.ToInt16(buffer, 0);                    
-                }
-
-                // 메시지를 읽는다.
-                completed = ReadUntil(buffer, ref srcPosition, offset, bytesTransferred);
-
-                if (completed)
-                {
-                    // 패킷 하나를 완성 했다.
-                    ProcessPacket(buffer);
-
-                    ClearBuffer();
-                }
+                ProcessPacket(buffer, parsedSize, packetLength);
+                parsedSize += packetLength;
             }
-
-            //process packet
         }
 
-        protected bool ReadUntil(byte[] buffer, ref int srcPosition, int offset, int bytesTransferred)
-        {
-            if (offset + bytesTransferred <= _currentPosition)
-            {
-                // 들어온 데이터 만큼 다 읽은 상태이므로 더이상 읽을 데이터가 없다.
-                return false;
-            }
-
-            // 읽어와야 할 바이트.
-            // 데이터가 분리되어 올 경우 이전에 읽어놓은 값을 빼줘서 부족한 만큼 읽어올 수 있도록 계산해 준다.
-            int copySize = _positionToRead - _currentPosition;
-
-            // 남은 데이터가 더 적다면 가능한 만큼만 복사한다.
-            if (_remainBytes < copySize)
-            {
-                copySize = _remainBytes;
-            }
-
-            // 버퍼에 복사.
-            Array.Copy(buffer, srcPosition, _buffer, _currentPosition, copySize);
-
-
-            // 원본 버퍼 포지션 이동.
-            srcPosition += copySize;
-
-            // 타겟 버퍼 포지션도 이동.
-            _currentPosition += copySize;
-
-            // 남은 바이트 수.
-            _remainBytes -= copySize;
-
-            // 목표지점에 도달 못했으면 false
-            if (_currentPosition < _positionToRead)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        protected virtual void ClearBuffer()
-        {
-            _buffer = new byte[Constants.MAX_PACKET_SIZE];
-            _remainBytes = 0;
-            _currentPosition = 0;
-            _positionToRead = 0;
-        }
-
-        protected abstract void ProcessPacket(byte[] buffer);        
+        protected abstract void ProcessPacket(byte[] buffer, int offset, int length);
 
         public void Send(PacketBase msg)
         {
-            //need to check packet size
-            
+            if(Constants.MAX_PACKET_SIZE < msg.GetPacketSize())
+            {
+                //to do - log
+                return;
+            }
+
             Monitor.Enter(_sendQueueLock);
             {
                 //if Queue is empty, need to call StartSend() directly
@@ -217,7 +192,7 @@ namespace ServerBase
             Monitor.Enter(_sendQueueLock);
             {
                 // 전송이 아직 완료된 상태가 아니므로 데이터만 가져오고 큐에서 제거하진 않는다.
-                Packet msg = _sendQueue.Peek();
+                PacketBase msg = _sendQueue.Peek();
 
                 // 헤더에 패킷 사이즈를 기록한다.
                 //msg.record_size();
@@ -227,7 +202,7 @@ namespace ServerBase
                 _sendEventArgs.SetBuffer(0, length);
 
                 // 패킷 내용을 SocketAsyncEventArgs버퍼에 복사한다.
-                Buffer.BlockCopy(msg._buffer, 0, _sendEventArgs.Buffer, 0, size);
+                Buffer.BlockCopy(msg._buffer, 0, _sendEventArgs.Buffer, 0, length);
                 //Array.Copy(msg._buffer, 0, _sendEventArgs.Buffer, _sendEventArgs.Offset, length);
 
                 // 비동기 전송 시작.
@@ -255,20 +230,27 @@ namespace ServerBase
         public void ProcessSend()
         {
             Monitor.Enter(_sendQueueLock);
-            int size = _sendQueue[0].GetPacketSize();
+            int size = _sendQueue.Peek().GetPacketSize();
             int sentSize = _sendEventArgs.Offset + _sendEventArgs.BytesTransferred;
             if (sentSize != size && size - sentSize > 0)
             {
                 _sendEventArgs.SetBuffer(sentSize, size - sentSize);
-                //try
-                _socket.SendAsync(_sendEventArgs);
-                //catch - closeSocket
+
+                try
+                {
+                    _socket.SendAsync(_sendEventArgs);
+                }
+                catch (Exception e)
+                {
+                    //to do - log
+                    CloseSocket();
+                }
                 Monitor.Exit(_sendQueueLock);
                 return;
             }
 
-            // 전송 완료된 패킷을 큐에서 제거한다.            
-            Packet packet = _sendQueue.Dequeue();
+            // 전송 완료된 패킷을 큐에서 제거한다.
+            PacketBase packet = _sendQueue.Dequeue();
             int queueCount = _sendQueue.Count;
 
             Monitor.Exit(_sendQueueLock);
@@ -281,33 +263,33 @@ namespace ServerBase
         }
 
         // CloseSocket -> OnClose -> Disconnect
-        
+
         public void CloseSocket()
         {
-            //change socket state CONNECT to CLOSED
+            _socketState = SocketState.CLOSED;
             OnClose();
         }
 
-        public virtual void OnClose() 
-        { 
+        public virtual void OnClose()
+        {
             Monitor.Enter(_sendQueueLock);
             _sendQueue.Clear();
             Monitor.Exit(_sendQueueLock);
-            
+
             Disconnect();
         }
-        
+
         public virtual void Disconnect()
         {
-            //_socket.Shutdown(SocketShutdown.Both); // <- server 측은 linger timout 0 : shutdown 하면 graceful close 생김
+            //to do _socket.Shutdown(SocketShutdown.Both); // <- server 측은 linger timout 0 : shutdown 하면 graceful close 생김
             //client 일때는 shutdown 필요
-             _socket.Close();
+            _socket.Close();
             _socket = null;
 
             _sendEventArgs.Completed -= new EventHandler<SocketAsyncEventArgs>(IO_Completed);
             _sendEventArgs.UserToken = null;
             _receiveEventArgs.Completed -= new EventHandler<SocketAsyncEventArgs>(IO_Completed);
-            _receiveEventArgs.UserToken = null;            
+            _receiveEventArgs.UserToken = null;
         }
     }
 }

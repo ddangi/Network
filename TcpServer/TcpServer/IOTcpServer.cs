@@ -11,47 +11,12 @@ namespace TcpServer
 {
     public class IOTcpServer : ListenSocketBase
     {
-        private SocketAsyncEventArgsPool _receiveEventArgsPool;
-        private SocketAsyncEventArgsPool _sendEventArgsPool;
-        private int _socketIdSeq = 0;
-
         private object _userSocketDictLock = new object();
         private Dictionary<int, SocketSessionBase> _userSocketDict = new Dictionary<int, SocketSessionBase>();
 
         public IOTcpServer() : base()
         {
-            InitializeArgs(Constants.MAX_CONNECTION);
-        }
 
-        private void InitializeArgs(int capacity)
-        {
-            _receiveEventArgsPool = new SocketAsyncEventArgsPool(capacity);
-            _sendEventArgsPool = new SocketAsyncEventArgsPool(capacity);
-
-            for (int i = 0; i < capacity; i++)
-            {
-                UserSocket client = new UserSocket();
-                // receive pool
-                {
-                    //이 로직은 ServerSocketBase로 옮
-                    SocketAsyncEventArgs arg = new SocketAsyncEventArgs();
-                    arg.Completed += new EventHandler<SocketAsyncEventArgs>(IO_Completed);
-                    BufferManager.Instance.SetBuffer(arg);
-                    arg.UserToken = client;
-
-                    _receiveEventArgsPool.Push(arg);
-                }
-
-                // send pool
-                {
-                    SocketAsyncEventArgs arg = new SocketAsyncEventArgs();
-                    arg.Completed += new EventHandler<SocketAsyncEventArgs>(IO_Completed);
-                    BufferManager.Instance.SetBuffer(arg);
-                    arg.UserToken = client;
-
-                    _sendEventArgsPool.Push(arg);
-                }
-            }
         }
 
         protected override void NewClientAccepted(Socket socket)
@@ -59,11 +24,11 @@ namespace TcpServer
             SocketAsyncEventArgs receiveArgs = _receiveEventArgsPool.Pop();
             SocketAsyncEventArgs sendArgs = _sendEventArgsPool.Pop();
 
-            UserSocket client = new UserSocket(socket);
-            client.SetEventArgs(acceptedArgs.AcceptSocket, sendArgs, receiveArgs);
+            UserSocket client = new UserSocket(socket, this);
+            client.SetSocketAsyncEventArg(sendArgs, receiveArgs);
             client.ID = Interlocked.Increment(ref _socketIdSeq);
-
-            //dict에 소켓 추가
+            client.State = SocketState.CONNECTED;
+            
             Monitor.Enter(_userSocketDictLock);
             _userSocketDict[client.ID] = client;
             Monitor.Exit(_userSocketDictLock);

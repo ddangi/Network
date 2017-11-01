@@ -15,7 +15,7 @@ namespace TcpServer
 {
     public partial class TcpServer : ServiceBase
     {
-        private static IOTcpServer s_tcpServer = new IOTcpServer();
+        public static IOTcpServer s_tcpServer = new IOTcpServer();
         public static ManualResetEvent _isShutDown;
 
         public TcpServer()

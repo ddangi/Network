@@ -34,6 +34,12 @@ namespace ServerBase
         {
             lock (pool)
             {
+                if(0 == pool.Count)
+                {
+                    SocketAsyncEventArgs item = new SocketAsyncEventArgs();
+                    pool.Enqueue(item);
+                }
+
                 return pool.Dequeue();
             }
         }

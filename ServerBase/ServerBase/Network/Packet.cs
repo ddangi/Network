@@ -11,10 +11,19 @@ namespace ServerBase
 {
     public class Packet : PacketBase
     {
-        public Packet(byte[] buffer)
+        //send
+        public Packet()
+        {
+
+        }
+
+        //recv
+        public Packet(byte[] buffer, int offset, int length)
         {
             _header = new Header();
             _buffer = buffer;
+            _currentIndex = offset;
+            _packetSize = length;
         }
 
         public override int GetPacketSize()
@@ -26,10 +35,10 @@ namespace ServerBase
         {
             return _header.length - Constants.HEADER_SIZE;
         }
-        
-        public void short GetCommand()
+
+        public override short GetCommand()
         {
-            short cmd = BitConvert.ToInt16(_buffer, Constants.LENGTH_SIZE);
+            short cmd = BitConverter.ToInt16(_buffer, _currentIndex + Constants.PACKET_LENGTH_SIZE);
             return cmd;
         }
 

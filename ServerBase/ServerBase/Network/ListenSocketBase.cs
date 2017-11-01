@@ -4,15 +4,63 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ServerBase
 {
-    public abstract class ListenSocketBase : IOSocket
+    public abstract class ListenSocketBase
     {
         protected Socket _listenSocket;
         protected int _port;
         protected bool _bShutdown;
+
+        protected object _argsPoolLock;
+        protected SocketAsyncEventArgsPool _receiveEventArgsPool;
+        protected SocketAsyncEventArgsPool _sendEventArgsPool;
+        protected int _socketIdSeq = 0;
+
+        public ListenSocketBase()
+        {
+            InitializeArgs(Constants.MAX_CONNECTION);
+        }
+
+        protected void InitializeArgs(int capacity)
+        {
+            _argsPoolLock = new object();
+            _receiveEventArgsPool = new SocketAsyncEventArgsPool(capacity);
+            _sendEventArgsPool = new SocketAsyncEventArgsPool(capacity);
+
+            Monitor.Enter(_argsPoolLock);
+            for (int i = 0; i < capacity; i++)
+            {
+                // receive pool
+                {
+                    SocketAsyncEventArgs arg = new SocketAsyncEventArgs();
+                    _receiveEventArgsPool.Push(arg);
+                }
+
+                // send pool
+                {
+                    SocketAsyncEventArgs arg = new SocketAsyncEventArgs();
+                    _sendEventArgsPool.Push(arg);
+                }
+            }
+            Monitor.Exit(_argsPoolLock);
+        }
+
+        public void ReturnSocketAsyncEventArgs(SocketAsyncEventArgs sendArgs, SocketAsyncEventArgs receiveArgs)
+        {
+            Monitor.Enter(_argsPoolLock);
+
+            if (_sendEventArgsPool.Count < Constants.MAX_CONNECTION)
+                _sendEventArgsPool.Push(sendArgs);
+
+            if (_receiveEventArgsPool.Count < Constants.MAX_CONNECTION)
+                _receiveEventArgsPool.Push(receiveArgs);
+
+            Monitor.Exit(_argsPoolLock);
+        }
 
         public bool Start(int port)
         {
@@ -90,19 +138,19 @@ namespace ServerBase
             if (acceptEventArgs.SocketError != SocketError.Success)
             {
                 Console.WriteLine($"SocketError, message - {acceptEventArgs.SocketError.ToString()}");
-                LoopToStartAccept(acceptEventArgs);                
+                LoopToStartAccept(acceptEventArgs);
                 return;
             }
-            
+
             Socket clientSocket = acceptEventArgs.AcceptSocket;
             if(clientSocket != null)
                 NewClientAccepted(clientSocket);
 
             acceptEventArgs.AcceptSocket = null;
             LoopToStartAccept(acceptEventArgs);
-            
+
             //성능에 문제가 있다면 LoopToStartAccept 로직을 쪼개서
-            //accetpAsync 한 다음 
+            //accetpAsync 한 다음
             //NewClientAccepted 하고
             //ProcessAccept 호출하는 형태로 수정하자
         }

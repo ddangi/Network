@@ -13,25 +13,20 @@ namespace TcpServer
 {
     public class UserSocket : SocketSessionBase
     {
-        private Socket _acceptedSocket;
-        private SocketAsyncEventArgs _receiveArgs;
-        private SocketAsyncEventArgs _sendArgs;
-
         private int _id;
         public int ID { set { _id = value; } get { return _id; } }
 
-        public UserSocket(Socket socket) : base(socket)
+        public UserSocket(Socket socket, ListenSocketBase listenSocket) : base(socket, listenSocket)
         {
-            
+
         }
 
-        protected override void ProcessPacket(byte[] buffer)
+        protected override void ProcessPacket(byte[] buffer, int offset, int length)
         {
-            Packet packet = new packet(buffer)
-            TcpServerCommand command = (TcpServerCommand)packet.GetCommand();            
-            int length = _positionToRead - Constants.HEADER_SIZE;
-            
-            CodedInputStream protoStream = new CodedInputStream(buffer, Constants.HEADER_SIZE, length);
+            Packet packet = new Packet(buffer, offset, length);
+            TcpServerCommand command = (TcpServerCommand)packet.GetCommand();
+
+            CodedInputStream protoStream = new CodedInputStream(buffer, Constants.HEADER_SIZE, length - Constants.HEADER_SIZE);
 
             OnEchoRequest(this, protoStream);
         }
@@ -51,6 +46,14 @@ namespace TcpServer
             client.Send(packet);
 
             return 1;
+        }
+
+        public override void Disconnect()
+        {
+            //server 측은 shutdown 하면 graceful close 생김
+            LingerOption lingerOpts = new LingerOption(true, 0);
+            _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger, lingerOpts);
+            base.Disconnect();
         }
     }
 }

@@ -23,6 +23,8 @@ namespace ServerBase
             m_currentIndex = 0;
             m_bufferSize = Constants.MAX_PACKET_SIZE;
             m_freeIndexPool = new Stack<int>();
+
+            InitBuffer();
         }
 
         /// <summary>
