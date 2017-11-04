@@ -127,11 +127,11 @@ namespace ServerBase
             if(0 < remainDataSize && 0 < parsedSize)
             {
                 Buffer.BlockCopy(_recvBuffer, parsedSize, _recvBuffer, 0, remainDataSize);
-                arg.SetBuffer(totalRecvSize, Constants.MAX_PACKET_SIZE - totalRecvSize);
+                arg.SetBuffer(remainDataSize, Constants.MAX_PACKET_SIZE - remainDataSize);
             }
             else if(parsedSize == 0)
             {
-                arg.SetBuffer(totalRecvSize, Constants.MAX_PACKET_SIZE - totalRecvSize);
+                arg.SetBuffer(remainDataSize, Constants.MAX_PACKET_SIZE - remainDataSize);
             }
             else if(0 < arg.Offset )
             {
@@ -154,6 +154,12 @@ namespace ServerBase
                 int packetLength = BitConverter.ToInt16(buffer, parsedSize);
                 if (remainLength < packetLength)
                     return;
+
+                if(packetLength < Constants.HEADER_SIZE)
+                {
+                    //to do - log
+                    return;
+                }
 
                 ProcessPacket(buffer, parsedSize, packetLength);
                 parsedSize += packetLength;

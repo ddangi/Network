@@ -117,18 +117,28 @@ namespace TcpServer
             Console.WriteLine("Try to start TcpServer!");
             Console.WriteLine("-------------------------------------------------------------------");
 
+            if(false == UserSocket.InitializePacketHandler())
+            {
+                Console.WriteLine("InitializePacketHandler execution failed");
+                return;
+            }
+
             int port = 20000;
             s_tcpServer.Start(port);
 
-            _isShutDown.WaitOne(-1);
+            string input = string.Empty;
+            while(true)
+            {
+                input = Console.ReadLine();
+                if (0 == input.ToLower().CompareTo("quit"))
+                    break;
+            }
         }
 
         protected override void OnStop()
         {
-            Console.WriteLine("TcpServer stopped!");
             s_tcpServer.Stop();
-
-            _isShutDown.Set();
+            Console.WriteLine("TcpServer stopped!");
         }
     }
 }

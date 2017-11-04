@@ -21,17 +21,64 @@ namespace TcpServer
 
         }
 
+        public override void Disconnect()
+        {
+            //server 측은 shutdown 하면 graceful close 생김
+            LingerOption lingerOpts = new LingerOption(true, 0);
+            _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger, lingerOpts);
+            base.Disconnect();
+        }
+        private static IDictionary<TcpServerCommand, Func<UserSocket, CodedInputStream, bool>> s_PacketHandlers = new Dictionary<TcpServerCommand, Func<UserSocket, CodedInputStream, bool>>();
+
+        public static bool InitializePacketHandler()
+        {
+            System.Globalization.TextInfo textInfo = new System.Globalization.CultureInfo("en-US", false).TextInfo;
+            Array commands = Enum.GetValues(typeof(TcpServerCommand));
+            foreach (Enum cmd in commands)
+            {
+                string packetFunction = cmd.ToString();
+                if (false == packetFunction.EndsWith("Request"))
+                    continue;
+
+                packetFunction = packetFunction.Replace("Cs", "On");
+                //Type packetType = Type.GetType("USERPACKET." + packetProto + ",serverBase");
+
+                System.Reflection.MethodInfo method = typeof(UserSocket).GetMethod(packetFunction,
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic,
+                null, new Type[] { typeof(UserSocket), typeof(CodedInputStream) }, null);
+
+                if (method == null)
+                {
+                    Log.AddLog($"{packetFunction} method is missing");
+                    return false;
+                }
+
+                s_PacketHandlers.Add((TcpServerCommand)cmd, (Func<UserSocket, CodedInputStream, bool>)Delegate.CreateDelegate(typeof(Func<UserSocket, CodedInputStream, bool>), method));
+            }
+
+            return true;
+        }
+
         protected override void ProcessPacket(byte[] buffer, int offset, int length)
         {
             Packet packet = new Packet(buffer, offset, length);
             TcpServerCommand command = (TcpServerCommand)packet.GetCommand();
 
-            CodedInputStream protoStream = new CodedInputStream(buffer, Constants.HEADER_SIZE, length - Constants.HEADER_SIZE);
+            if(false == s_PacketHandlers.ContainsKey(command))
+            {
+                Log.AddLog($"packet handler not fouind : cmd:{command.ToString()}");
+                return;
+            }
 
-            OnEchoRequest(this, protoStream);
+            int count = length - Constants.HEADER_SIZE;
+            byte[] copiedBuffer = new byte[count];
+            Buffer.BlockCopy(buffer, Constants.HEADER_SIZE, copiedBuffer, 0, count);
+            CodedInputStream protoStream = new CodedInputStream(copiedBuffer);
+
+            s_PacketHandlers[command](this, protoStream);
         }
 
-        protected static int OnEchoRequest(UserSocket client, CodedInputStream stream)
+        protected static bool OnEchoRequest(UserSocket client, CodedInputStream stream)
         {
             CsEchoRequest proto = CsEchoRequest.Parser.ParseFrom(stream);
             string message = proto.Message;
@@ -45,15 +92,12 @@ namespace TcpServer
             packet.EncodePacket(TcpServerCommand.CsEchoOk, response);
             client.Send(packet);
 
-            return 1;
+            return true;
         }
 
-        public override void Disconnect()
+        protected static bool OnPingRequest(UserSocket client, CodedInputStream stream)
         {
-            //server 측은 shutdown 하면 graceful close 생김
-            LingerOption lingerOpts = new LingerOption(true, 0);
-            _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger, lingerOpts);
-            base.Disconnect();
+            return true;
         }
     }
 }

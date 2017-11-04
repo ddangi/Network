@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="BufferManager.cs" />
     <Compile Include="Constants.cs" />
+    <Compile Include="Log.cs" />
     <Compile Include="Network\ClientSocketBase.cs" />
     <Compile Include="Network\IOSocket.cs" />
     <Compile Include="Network\ListenSocketBase.cs" />
