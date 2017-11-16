@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ServerBase;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration.Install;
@@ -26,6 +27,8 @@ namespace TcpServer
 
         static void Main(string[] args)
         {
+            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(Dump.CurrentDomain_UnhandledException);
+
             bool bDebug = false;
             if (0 < args.Length)
             {

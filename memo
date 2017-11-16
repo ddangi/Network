@@ -1,5 +1,5 @@
 *할일
 
-1. 프로그램 메인부에서 에러 핸들링 함수 등록
-AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(클래스.CurrentDomain_UnhandledException)
-위와 같이 추가
+1.config 읽기
+
+2.패킷 끊어져서 오는 경우, 뭉쳐서 오는 경우 처리
