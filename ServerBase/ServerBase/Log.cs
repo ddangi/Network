@@ -12,7 +12,7 @@ namespace ServerBase
     {
         private static object _logQueueLock = new object();
         private static Queue<string> _logQueue = new Queue<string>();
-        private static ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().Name);
+        public static ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().Name);
 
         public static void AddLog(string format, params object[] list)
         {
@@ -33,8 +33,8 @@ namespace ServerBase
             string log = string.Empty;
 
             if (0 < _logQueue.Count)
-                log = _logQueue.Dequeue(
-                    );
+                log = _logQueue.Dequeue();
+
             Monitor.Exit(_logQueueLock);
 
             return log;

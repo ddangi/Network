@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Config>
+    <Category Name="Cate1">
+        <Item Name="TestInt" Value="1" />
+        <Item Name="TestBool" Value="true" />
+        <Item Name="TestString" Value="Hello" />
+    </Category>
+
+    <Category Name="Cate2">
+        <Item Name="TestInt" Value="2" />
+        <Item Name="TestBool" Value="false" />
+        <Item Name="TestString" Value="World" />
+    </Category>
+</Config>

@@ -29,6 +29,8 @@ namespace TcpServer
         {
             AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(Dump.CurrentDomain_UnhandledException);
 
+            log4net.Config.XmlConfigurator.Configure(new System.IO.FileInfo("serverLog.xml"));
+
             bool bDebug = false;
             if (0 < args.Length)
             {
@@ -52,7 +54,7 @@ namespace TcpServer
                         break;
 
                     default:
-                        Console.WriteLine("Invalid argument!");
+                        Log.log.Error("Invalid argument!");
                         break;
                 }
             }
@@ -83,7 +85,7 @@ namespace TcpServer
             }
             catch
             {
-                Console.WriteLine("failed to install Service!");
+                Log.log.Error("failed to install Service!");
             }
         }
 
@@ -95,7 +97,7 @@ namespace TcpServer
             }
             catch
             {
-                Console.WriteLine("failed to install Service!");
+                Log.log.Error("failed to install Service!");
             }
         }
 
@@ -116,13 +118,19 @@ namespace TcpServer
 
         protected override void OnStart(string[] args)
         {
-            Console.WriteLine("-------------------------------------------------------------------");
-            Console.WriteLine("Try to start TcpServer!");
-            Console.WriteLine("-------------------------------------------------------------------");
+            Log.log.Info("-------------------------------------------------------------------");
+            Log.log.Info("Try to start TcpServer!");
+            Log.log.Info("-------------------------------------------------------------------");
 
-            if(false == UserSocket.InitializePacketHandler())
+            if(false == ConfigManager.Instance.LoadServerConfig())
             {
-                Console.WriteLine("InitializePacketHandler execution failed");
+                Log.log.Error("LoadServerConfig failed");
+                return;
+            }
+
+            if (false == UserSocket.InitializePacketHandler())
+            {
+                Log.log.Error("InitializePacketHandler execution failed");
                 return;
             }
 
@@ -141,7 +149,7 @@ namespace TcpServer
         protected override void OnStop()
         {
             s_tcpServer.Stop();
-            Console.WriteLine("TcpServer stopped!");
+            Log.log.Info("TcpServer stopped!");
         }
     }
 }
