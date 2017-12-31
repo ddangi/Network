@@ -14,6 +14,7 @@ namespace ServerBase
         private static Queue<string> _logQueue = new Queue<string>();
         public static ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().Name);
 
+        #region Log For Client
         public static void AddLog(string format, params object[] list)
         {
             string log = string.Format(format, list);
@@ -51,5 +52,6 @@ namespace ServerBase
                 return count;
             }
         }
+        #endregion
     }
 }

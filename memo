@@ -1,7 +1,10 @@
 *To Do
 
-1. Packet Reading Control 
+1. DB logic
+ - mysql
+
+2. Packet Reading Control 
  - When packets are comming separately
  - When packets are comming agglomerate together
 
-2. Packet extract - for performance
+3. Packet extract - for performance
